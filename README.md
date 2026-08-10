@@ -1,127 +1,317 @@
-# AI-Generated Image Detector — Build Guide
 
-Detects whether an image is a real photograph or AI-generated (diffusion/GAN),
-using a self-trained CNN. No external API calls — the trained model does all
-the work locally.
+# FakeDetect
 
----
+### AI Image Detection using Deep Learning
 
-## Architecture
+FakeDetect is a machine-learning-based web application that analyzes images and predicts whether they are **AI-generated (FAKE)** or **REAL**.
 
-```
-[User uploads image]
-        |
-        v
-   React frontend  --(POST /api/predict, local network)-->  Flask backend
-        |                                                          |
-        |                                                          v
-        |                                          Loads best_model.pt (your
-        |                                          trained ResNet18) into
-        |                                          PyTorch, runs inference
-        |                                          + Grad-CAM locally
-        |                                                          |
-        <-----------------  JSON: prediction, confidence, heatmap  -
-```
-
-Training happens once (on Colab, needs internet). Inference happens every
-time the app is used (fully offline, on your machine).
+The project uses a **ResNet18 Convolutional Neural Network with Transfer Learning**, trained on the **CIFAKE dataset**.
 
 ---
 
-## Step 1 — Train the model (Google Colab)
+## Current Features
 
-1. Go to https://colab.research.google.com, new notebook.
-2. Runtime > Change runtime type > **T4 GPU**.
-3. Get a Kaggle API token: kaggle.com/settings > API > "Create New Token"
-   (downloads `kaggle.json`).
-4. In a Colab cell:
-   ```python
-   !pip install kaggle -q
-   from google.colab import files
-   files.upload()  # select kaggle.json
-   !mkdir -p ~/.kaggle && cp kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
-   !kaggle datasets download -d birdy654/cifake-real-and-ai-generated-synthetic-images
-   !unzip -q cifake-real-and-ai-generated-synthetic-images.zip -d /content/cifake
-   ```
-5. Check the folder structure matches `/content/cifake/train/{REAL,FAKE}` and
-   `/content/cifake/test/{REAL,FAKE}` — adjust `DATA_DIR` in the script if the
-   unzip produces different folder names.
-6. Copy the contents of `training/train_colab.py` into cells and run.
-   ~8 epochs on a T4 GPU should take well under an hour.
-7. Watch the printed validation accuracy per epoch — it should climb into the
-   90%+ range on CIFAKE (it's a fairly separable dataset).
-8. Download the result:
-   ```python
-   from google.colab import files
-   files.download("/content/best_model.pt")
-   ```
+- AI-generated image detection
+- REAL / FAKE classification
+- Prediction probability
+- Image upload and preview
+- Grad-CAM visualization
+- Flask REST API
+- React + Vite frontend
+- PyTorch-based inference
+- CPU inference support
+- Model health-check API
 
-## Step 2 — Set up the backend
+---
 
-```bash
+## Machine Learning Model
+
+**Architecture:** ResNet18  
+**Learning Method:** Transfer Learning  
+**Framework:** PyTorch  
+**Dataset:** CIFAKE  
+**Classes:**
+
+```text
+FAKE
+REAL
+````
+
+The model uses an ImageNet-pretrained ResNet18 and is fine-tuned for binary classification of real and AI-generated images.
+
+---
+
+## Dataset
+
+The model was trained using the CIFAKE dataset.
+
+| Split    |   REAL |   FAKE |   Total |
+| -------- | -----: | -----: | ------: |
+| Training | 50,000 | 50,000 | 100,000 |
+| Testing  | 10,000 | 10,000 |  20,000 |
+
+Total images used:
+
+**120,000**
+
+---
+
+## Model Performance
+
+### Best Validation Accuracy
+
+**97.77%**
+
+### Test Accuracy
+
+**97.63%**
+
+The model was evaluated on 20,000 previously unseen test images.
+
+### Confusion Matrix
+
+                 Predicted
+                 FAKE    REAL
+
+Actual FAKE     9828     172
+Actual REAL      302    9698
+
+
+### Classification Report
+
+| Class | Precision | Recall | F1-Score |
+| ----- | --------: | -----: | -------: |
+| FAKE  |      0.97 |   0.98 |     0.98 |
+| REAL  |      0.98 |   0.97 |     0.98 |
+
+---
+
+## Explainable AI
+
+FakeDetect uses **Grad-CAM (Gradient-weighted Class Activation Mapping)** to visualize image regions that contributed to the model's classification.
+
+The system provides:
+
+
+Original Image
+       +
+Grad-CAM Heatmap
+
+
+Grad-CAM is used for model interpretability and should not be considered independent proof that an image is AI-generated.
+
+---
+
+## Technology Stack
+
+### Machine Learning
+
+* Python
+* PyTorch
+* TorchVision
+* NumPy
+* ResNet18
+* CIFAKE Dataset
+
+### Backend
+
+* Python
+* Flask
+* Flask-CORS
+* Pillow
+
+### Frontend
+
+* React
+* Vite
+* Tailwind CSS
+* Lucide React
+
+---
+
+## Project Structure
+
+```text
+FakeDetect/
+│
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── model/
+│       └── best_model.pt
+│
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   └── ...
+│
+├── training/
+│   └── train_colab.py
+│
+├── README.md
+└── .gitignore
+```
+```
+The exact structure may evolve during further development.
+
+---
+
+## Running the Backend
+
+```powershell
 cd backend
+```
+
+Create the virtual environment:
+
+```powershell
 python -m venv venv
-venv\Scripts\activate        # Windows PowerShell: .\venv\Scripts\Activate.ps1
+```
+
+Activate it:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```powershell
 pip install -r requirements.txt
-mkdir model
-# move your downloaded best_model.pt into backend/model/
+```
+
+Verify the trained model:
+
+```powershell
+Test-Path .\model\best_model.pt
+```
+
+Start Flask:
+
+```powershell
 python app.py
 ```
 
-Flask will start on `http://localhost:5000`. Test it's alive:
-```bash
-curl http://localhost:5000/api/health
+Backend:
+
+```text
+http://localhost:5000
 ```
 
-## Step 3 — Set up the frontend
+Health endpoint:
 
-This is a single React component (`App.jsx`). Fastest path: create a Vite
-React app and drop it in.
-
-```bash
-cd frontend
-npm create vite@latest . -- --template react
-npm install
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
+```text
+http://localhost:5000/api/health
 ```
-
-Replace the generated `src/App.jsx` with the provided `App.jsx`, add Tailwind
-directives to `src/index.css`:
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-Then:
-```bash
-npm run dev
-```
-
-Opens on `http://localhost:5173`. Upload an image, click Detect — it calls
-your local Flask server, gets back prediction + confidence + Grad-CAM heatmap.
 
 ---
 
-## What to say in your viva/demo
+## Running the Frontend
 
-- "I fine-tuned a ResNet18, pretrained on ImageNet, on the CIFAKE dataset —
-  60k real and 60k AI-generated images."
-- "I froze the early layers and only fine-tuned layer4 and the final
-  classifier — this avoids overfitting on a relatively small dataset and
-  trains faster."
-- "Inference is fully local — no API calls. The model weights are a file I
-  own, loaded directly into PyTorch in my Flask backend."
-- "The Grad-CAM heatmap shows which pixels most influenced the model's
-  decision — this makes the model's reasoning interpretable, not a black
-  box."
-- Have your confusion matrix and classification report (printed at the end
-  of training) ready to show — that's your accuracy/precision/recall story.
+Open another terminal:
 
-## Possible extensions if you have time left
+```powershell
+cd frontend
+```
 
-- Add a second dataset (e.g. real vs Midjourney faces) to test generalization
-  beyond CIFAKE's specific generator.
-- Try EfficientNet-B0 instead of ResNet18 and compare accuracy.
-- Add a "batch upload" mode — upload a folder, get a CSV of results.
+Install dependencies:
+
+```powershell
+npm install
+```
+
+Start the development server:
+
+```powershell
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## API
+
+### Health Check
+
+```http
+GET /api/health
+```
+
+Used to verify that the Flask backend and trained model are available.
+
+### Image Prediction
+
+```http
+POST /api/predict
+```
+
+Accepts an image using:
+
+```text
+multipart/form-data
+```
+
+and returns the model's prediction and probability information.
+
+---
+
+## Current Status
+
+### Completed
+
+* [x] CIFAKE dataset preparation
+* [x] ResNet18 training
+* [x] Transfer learning
+* [x] Model evaluation
+* [x] Best model checkpoint
+* [x] Flask backend
+* [x] React frontend
+* [x] Image upload
+* [x] FAKE / REAL prediction
+* [x] Prediction probabilities
+* [x] Grad-CAM
+* [x] Health-check API
+
+### Planned / Under Development
+
+* [ ] Advanced image analysis
+* [ ] EXIF metadata extraction
+* [ ] Image statistics
+* [ ] Digital forensic indicators
+* [ ] SHA-256 file analysis
+* [ ] Professional PDF reports
+* [ ] Analysis history
+* [ ] Dashboard
+* [ ] Model information page
+* [ ] Downloadable analysis data
+* [ ] Advanced UI/UX
+
+---
+
+## Limitations
+
+The reported **97.63% accuracy** applies specifically to the CIFAKE test set.
+
+Model probability for an individual image should not be interpreted as the model's overall accuracy.
+
+The system may perform differently on images from distributions that differ significantly from the CIFAKE dataset.
+
+Grad-CAM provides model interpretability but does not constitute definitive proof of image authenticity.
+
+---
+
+## Project
+
+**FakeDetect — AI Image Detection & Digital Image Analysis**
+
+Developed as an academic Computer Engineering project.
+
+**Author:** Abhishek Wagh
+**Government Polytechnic Mumbai**
+
+---
