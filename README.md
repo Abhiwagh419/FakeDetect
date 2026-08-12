@@ -1,317 +1,318 @@
+# FakeDetect — AI Image Detection & Digital Image Forensics Platform
 
-# FakeDetect
+FakeDetect classifies an uploaded image as **AI-generated** or a **real
+photograph** using a self-trained ResNet18 CNN, and surrounds that
+prediction with real, computed digital-forensics context: EXIF metadata,
+image statistics, cryptographic hashing, JPEG/ELA analysis, Grad-CAM
+explainability, and a downloadable professional PDF report.
 
-### AI Image Detection using Deep Learning
-
-FakeDetect is a machine-learning-based web application that analyzes images and predicts whether they are **AI-generated (FAKE)** or **REAL**.
-
-The project uses a **ResNet18 Convolutional Neural Network with Transfer Learning**, trained on the **CIFAKE dataset**.
+All inference and analysis happens locally. No third-party AI-detection API
+is used — the model was trained from scratch (transfer learning) on the
+CIFAKE dataset and does all the work on your machine.
 
 ---
 
-## Current Features
+## Features
 
-- AI-generated image detection
-- REAL / FAKE classification
-- Prediction probability
-- Image upload and preview
-- Grad-CAM visualization
-- Flask REST API
-- React + Vite frontend
-- PyTorch-based inference
-- CPU inference support
-- Model health-check API
+- **AI-generated image detection** — ResNet18 binary classifier, softmax
+  probability output for FAKE / REAL
+- **Grad-CAM explainability** — visual heatmap of the regions that most
+  influenced the model's decision
+- **Image information** — format, MIME type, resolution, aspect ratio,
+  megapixels, color mode, channels
+- **Image statistics** — brightness, contrast, sharpness estimate, noise
+  estimate, average RGB, all computed from actual pixel data (NumPy)
+- **Color histogram** — RGB + luminance distribution, dominant colors
+- **EXIF metadata extraction** — camera make/model, timestamps, GPS
+  presence, and more, when present; absence is reported as absence, never
+  interpreted as a detection signal
+- **File integrity hashing** — SHA-256 and MD5 of the uploaded file
+- **JPEG / ELA forensics** — progressive-encoding and quantization-table
+  inspection; Error Level Analysis visualization for JPEGs
+- **Professional PDF report** — 6-page ReportLab report containing the
+  actual uploaded image, the actual Grad-CAM image, full forensic detail,
+  and the model's technical/evaluation summary
+- **Detection history** — SQLite-backed, searchable and filterable
+- **Dashboard** — totals, FAKE/REAL distribution, activity over time
+- **Model information page** — architecture, dataset, training procedure,
+  confusion matrix, precision/recall/F1 (for academic evaluation)
+- **Downloadable artifacts** — PDF report, Grad-CAM image, analysis JSON
+
+---
+
+## Architecture
+
+```
+frontend/ (React + Vite + Tailwind CSS)
+   │  fetch() via src/services/api.js
+   ▼
+backend/ (Flask)
+   ├── app.py                  routes only — thin controller layer
+   ├── config.py                paths, constants, static model metrics
+   ├── services/
+   │   ├── model_service.py     loads best_model.pt, runs inference + Grad-CAM
+   │   ├── analysis_service.py  orchestrates a full analysis, persists artifacts
+   │   ├── image_analysis.py    image info + statistics + histogram (NumPy/Pillow)
+   │   ├── metadata_service.py  EXIF extraction
+   │   ├── forensic_service.py  JPEG inspection + Error Level Analysis
+   │   ├── report_service.py    PDF report generation (ReportLab)
+   │   └── history_service.py   SQLite persistence
+   ├── utils/
+   │   ├── hashing.py           SHA-256 / MD5 / analysis ID generation
+   │   └── validation.py        extension/size/signature validation
+   ├── model/best_model.pt      trained checkpoint (not modified by this project)
+   ├── data/
+   │   ├── database.sqlite      history database
+   │   └── artifacts/<id>/      original + Grad-CAM PNGs, kept for report regeneration
+   └── reports/                 generated PDF reports
+```
+
+The original single-file prototype (`app.py` with `/api/predict` and
+`/api/health`) has been refactored into this service-oriented structure.
+`/api/predict` and `/api/health` still work exactly as before — nothing
+that was already working was broken in the process.
 
 ---
 
 ## Machine Learning Model
 
-**Architecture:** ResNet18  
-**Learning Method:** Transfer Learning  
-**Framework:** PyTorch  
-**Dataset:** CIFAKE  
-**Classes:**
+| | |
+|---|---|
+| Architecture | ResNet18 (ImageNet-pretrained; `layer4` + final classifier fine-tuned) |
+| Task | Binary classification — FAKE (AI-generated) vs. REAL |
+| Dataset | [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) — Real and AI-Generated Synthetic Images |
+| Training samples | 100,000 (50,000 REAL / 50,000 FAKE) |
+| Test samples | 20,000 (10,000 REAL / 10,000 FAKE) |
+| Epochs | 8, on a Google Colab NVIDIA T4 GPU |
+| Best validation accuracy | 97.77% |
+| Test accuracy | 97.63% |
 
-```text
-FAKE
-REAL
-````
+**Confusion matrix (test set):**
 
-The model uses an ImageNet-pretrained ResNet18 and is fine-tuned for binary classification of real and AI-generated images.
+|              | Predicted FAKE | Predicted REAL |
+|--------------|-----------------|-----------------|
+| Actual FAKE  | 9,828           | 172             |
+| Actual REAL  | 302             | 9,698           |
 
----
+**Classification report:**
 
-## Dataset
+| Class | Precision | Recall | F1 |
+|-------|-----------|--------|----|
+| FAKE  | 0.97      | 0.98   | 0.98 |
+| REAL  | 0.98      | 0.97   | 0.98 |
 
-The model was trained using the CIFAKE dataset.
+These figures are static, reported training results (from `train_colab.py`)
+and are surfaced as-is in the app and PDF report — they are not
+recomputed at runtime.
 
-| Split    |   REAL |   FAKE |   Total |
-| -------- | -----: | -----: | ------: |
-| Training | 50,000 | 50,000 | 100,000 |
-| Testing  | 10,000 | 10,000 |  20,000 |
+### Engineering principle: no invented metrics
 
-Total images used:
-
-**120,000**
-
----
-
-## Model Performance
-
-### Best Validation Accuracy
-
-**97.77%**
-
-### Test Accuracy
-
-**97.63%**
-
-The model was evaluated on 20,000 previously unseen test images.
-
-### Confusion Matrix
-
-                 Predicted
-                 FAKE    REAL
-
-Actual FAKE     9828     172
-Actual REAL      302    9698
-
-
-### Classification Report
-
-| Class | Precision | Recall | F1-Score |
-| ----- | --------: | -----: | -------: |
-| FAKE  |      0.97 |   0.98 |     0.98 |
-| REAL  |      0.98 |   0.97 |     0.98 |
+Every number shown in the UI or PDF corresponds to an actual calculation
+or a known model output. The app never claims that missing EXIF data or
+an ELA visualization "proves" AI generation — these are documented as
+supplementary, non-definitive signals throughout the UI, PDF report, and
+JSON export.
 
 ---
 
-## Explainable AI
-
-FakeDetect uses **Grad-CAM (Gradient-weighted Class Activation Mapping)** to visualize image regions that contributed to the model's classification.
-
-The system provides:
-
-
-Original Image
-       +
-Grad-CAM Heatmap
-
-
-Grad-CAM is used for model interpretability and should not be considered independent proof that an image is AI-generated.
-
----
-
-## Technology Stack
-
-### Machine Learning
-
-* Python
-* PyTorch
-* TorchVision
-* NumPy
-* ResNet18
-* CIFAKE Dataset
+## Setup
 
 ### Backend
 
-* Python
-* Flask
-* Flask-CORS
-* Pillow
-
-### Frontend
-
-* React
-* Vite
-* Tailwind CSS
-* Lucide React
-
----
-
-## Project Structure
-
-```text
-FakeDetect/
-│
-├── backend/
-│   ├── app.py
-│   ├── requirements.txt
-│   └── model/
-│       └── best_model.pt
-│
-├── frontend/
-│   ├── src/
-│   ├── package.json
-│   └── ...
-│
-├── training/
-│   └── train_colab.py
-│
-├── README.md
-└── .gitignore
-```
-```
-The exact structure may evolve during further development.
-
----
-
-## Running the Backend
-
-```powershell
+```bash
 cd backend
-```
-
-Create the virtual environment:
-
-```powershell
 python -m venv venv
-```
 
-Activate it:
-
-```powershell
+# Windows PowerShell
 .\venv\Scripts\Activate.ps1
-```
+# macOS/Linux
+source venv/bin/activate
 
-Install dependencies:
-
-```powershell
 pip install -r requirements.txt
-```
-
-Verify the trained model:
-
-```powershell
-Test-Path .\model\best_model.pt
-```
-
-Start Flask:
-
-```powershell
 python app.py
 ```
 
-Backend:
-
-```text
-http://localhost:5000
+The backend starts on `http://localhost:5000`. Verify with:
+```bash
+curl http://localhost:5000/api/health
 ```
 
-Health endpoint:
+The trained checkpoint must be present at `backend/model/best_model.pt`
+(already included in this repository — it is not retrained or modified by
+this refactor).
 
-```text
-http://localhost:5000/api/health
-```
+### Frontend
 
----
-
-## Running the Frontend
-
-Open another terminal:
-
-```powershell
+```bash
 cd frontend
-```
-
-Install dependencies:
-
-```powershell
 npm install
-```
-
-Start the development server:
-
-```powershell
 npm run dev
 ```
 
-Frontend:
+The frontend starts on `http://localhost:5173`.
 
-```text
-http://localhost:5173
+### Environment variables
+
+Copy `frontend/.env.example` to `frontend/.env` and adjust if the backend
+runs somewhere other than `localhost:5000`:
+
+```
+VITE_API_URL=http://localhost:5000
 ```
 
 ---
 
-## API
+## API Reference
 
-### Health Check
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Backend + model status |
+| POST | `/api/predict` | Legacy prediction-only endpoint (kept for compatibility) |
+| POST | `/api/analyze` | Full unified analysis — prediction, image info, statistics, EXIF, hash, JPEG/ELA forensics, Grad-CAM. Saves to history. |
+| POST | `/api/report` | Generates a PDF report. Accepts either an `image` file (analyzes fresh) or an `analysis_id` (reuses a stored analysis). Returns the PDF as a download. |
+| GET | `/api/report/<analysis_id>` | Re-downloads (or regenerates) the PDF for a stored analysis. |
+| GET | `/api/history` | Lists stored analyses. Query params: `prediction` (FAKE/REAL), `search` (filename), `limit`. |
+| GET | `/api/history/<analysis_id>` | Full stored analysis by ID. |
+| DELETE | `/api/history/<analysis_id>` | Deletes a stored analysis. |
+| GET | `/api/dashboard` | Aggregate stats: totals, FAKE/REAL split, average probability, recent analyses, activity timeline. |
+| GET | `/api/model-info` | Static model architecture/dataset/metrics. |
 
-```http
-GET /api/health
+**Error responses** use plain JSON (`{"error": "..."}`) with correct HTTP
+status codes (400 invalid request, 404 not found, 413 file too large, 415
+unsupported media type, 500 internal analysis error) and never expose raw
+Python tracebacks.
+
+**Example `/api/analyze` response shape** (trimmed):
+```json
+{
+  "analysis_id": "FD-20260811-1A8BF041",
+  "filename": "example.jpg",
+  "prediction": "FAKE",
+  "fake_probability": 99.61,
+  "real_probability": 0.39,
+  "model_confidence_tier": "HIGH_MODEL_CONFIDENCE",
+  "image": { "format": "JPEG", "width": 1920, "height": 1080, "...": "..." },
+  "statistics": { "brightness": { "...": "..." }, "...": "..." },
+  "histogram": { "r": [...], "g": [...], "b": [...], "dominant_colors": [...] },
+  "metadata": { "availability": "NOT_FOUND", "...": "..." },
+  "hash": { "sha256": "...", "md5": "..." },
+  "jpeg_forensics": { "...": "..." },
+  "ela": { "image_b64": "...", "...": "..." },
+  "gradcam": { "image_b64": "...", "note": "..." },
+  "model": { "architecture": "ResNet18", "test_accuracy": 0.9763, "...": "..." }
+}
 ```
 
-Used to verify that the Flask backend and trained model are available.
+---
 
-### Image Prediction
+## Database
 
-```http
-POST /api/predict
+SQLite, single table (`backend/data/database.sqlite`):
+
+```sql
+CREATE TABLE history (
+    id TEXT PRIMARY KEY,           -- e.g. FD-20260811-1A8BF041
+    filename TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    prediction TEXT NOT NULL,
+    fake_probability REAL NOT NULL,
+    real_probability REAL NOT NULL,
+    sha256 TEXT NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    file_size INTEGER,
+    report_available INTEGER DEFAULT 0,
+    analysis_json TEXT NOT NULL     -- full analysis payload, for detail view + report regeneration
+);
 ```
 
-Accepts an image using:
+Raw images are **not** stored in the database. The original image and its
+Grad-CAM overlay are saved as small PNGs under
+`backend/data/artifacts/<analysis_id>/`, referenced by path, so PDF
+reports can be regenerated later without re-uploading.
 
-```text
-multipart/form-data
+---
+
+## Validation & Security
+
+- Allowed extensions: `jpg`, `jpeg`, `png`, `webp`
+- Maximum upload size: 15 MB
+- Magic-byte file-signature verification (the authoritative check — client-
+  supplied MIME types are treated as an untrustworthy, soft signal only,
+  since they're easily generic or wrong)
+- Full image decode (`Image.load()`) before analysis, so truncated/corrupted
+  files fail cleanly with 400 rather than crashing mid-analysis
+- Secure filename sanitization
+- No raw Python tracebacks are ever returned to the client
+
+---
+
+## Frontend
+
+React + Vite + Tailwind CSS v4, `react-router-dom` for navigation,
+`recharts` for charts, `lucide-react` for icons.
+
+```
+frontend/src/
+  services/api.js       centralized API client (VITE_API_URL configurable)
+  components/
+    layout/AppShell.jsx  responsive sidebar/drawer navigation
+    common/               Card, KeyValueRow, ProbabilityBar, StatusBadge, Spinner
+    analyze/               UploadZone, DetectionResult, ImageDetailsCard,
+                            StatisticsCard, HistogramCard, MetadataCard,
+                            GradCamCard, ForensicsCard, ForensicSummaryCard
+  pages/
+    Dashboard.jsx  Analyze.jsx  History.jsx  Reports.jsx  Model.jsx
 ```
 
-and returns the model's prediction and probability information.
+Design: dark, glass-panel forensic aesthetic with a cyan accent, Space
+Grotesk/Inter/JetBrains Mono type system, and a signature scan-frame
+corner-bracket motif (with an animated scan sweep during analysis) that
+ties the visual language to the "image forensics" theme. The sidebar
+collapses to a slide-out drawer with a hamburger toggle below the `lg`
+breakpoint.
 
 ---
 
-## Current Status
+## Testing performed
 
-### Completed
+Verified against a live running backend + frontend:
 
-* [x] CIFAKE dataset preparation
-* [x] ResNet18 training
-* [x] Transfer learning
-* [x] Model evaluation
-* [x] Best model checkpoint
-* [x] Flask backend
-* [x] React frontend
-* [x] Image upload
-* [x] FAKE / REAL prediction
-* [x] Prediction probabilities
-* [x] Grad-CAM
-* [x] Health-check API
+- `/api/health`, `/api/predict` (legacy), `/api/analyze` on JPEG, PNG, and WEBP
+- PDF report generation — all 6 pages rendered to images and visually
+  inspected (cover, image info, detection, Grad-CAM, forensics, technical
+  summary)
+- History create/list/search/filter/view/delete
+- Dashboard aggregate stats and charts
+- Error paths: no file, unsupported extension, bad file signature,
+  truncated/corrupted image, oversized file (>15 MB), multiple consecutive
+  analyses
+- Full UI flow via Playwright: file upload → run detection → all result
+  cards render → generate PDF report → downloads a valid multi-page PDF;
+  history detail modal; mobile drawer navigation
+- Desktop (1440px) and mobile (390px) viewports
 
-### Planned / Under Development
+## Known limitations
 
-* [ ] Advanced image analysis
-* [ ] EXIF metadata extraction
-* [ ] Image statistics
-* [ ] Digital forensic indicators
-* [ ] SHA-256 file analysis
-* [ ] Professional PDF reports
-* [ ] Analysis history
-* [ ] Dashboard
-* [ ] Model information page
-* [ ] Downloadable analysis data
-* [ ] Advanced UI/UX
+- The classifier is trained and evaluated on CIFAKE; it may not generalize
+  to generative models or image pipelines outside that training
+  distribution.
+- Sharpness and noise statistics are heuristic estimates (Laplacian
+  variance / high-frequency residual), not calibrated, standardized image-
+  quality scores.
+- ELA and JPEG-encoding characteristics are forensic visualization aids,
+  not proof of manipulation.
+- EXIF absence is common for images that have simply been re-saved,
+  screenshotted, or stripped by a messaging app — it is not, by itself,
+  evidence of AI generation.
+- The Flask dev server is used for local/academic evaluation; a production
+  deployment should sit behind a WSGI server (gunicorn/waitress) and a
+  reverse proxy.
 
----
+## Future improvements
 
-## Limitations
-
-The reported **97.63% accuracy** applies specifically to the CIFAKE test set.
-
-Model probability for an individual image should not be interpreted as the model's overall accuracy.
-
-The system may perform differently on images from distributions that differ significantly from the CIFAKE dataset.
-
-Grad-CAM provides model interpretability but does not constitute definitive proof of image authenticity.
-
----
-
-## Project
-
-**FakeDetect — AI Image Detection & Digital Image Analysis**
-
-Developed as an academic Computer Engineering project.
-
-**Author:** Abhishek Wagh
-**Government Polytechnic Mumbai**
-
----
+- Batch analysis of multiple images at once
+- User accounts / multi-tenant history
+- Configurable confidence-tier thresholds
+- Additional forensic signals (e.g. PRNU, copy-move detection)
+- Async/background report generation for very large images
