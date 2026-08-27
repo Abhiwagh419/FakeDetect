@@ -16,12 +16,12 @@ export default function HistogramCard({ histogram }) {
         <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
           <XAxis dataKey="bin" hide />
           <Tooltip
-            contentStyle={{ background: "#0d1220", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 8, fontSize: 11 }}
+            contentStyle={{ background: "#ffffff", border: "1px solid rgba(15,23,42,0.12)", borderRadius: 8, fontSize: 11, boxShadow: "0 4px 16px -4px rgba(16,24,40,0.15)" }}
             labelFormatter={() => ""}
           />
-          <Area type="monotone" dataKey="r" stroke="#fb4570" fill="#fb4570" fillOpacity={0.15} strokeWidth={1.5} />
-          <Area type="monotone" dataKey="g" stroke="#34d399" fill="#34d399" fillOpacity={0.15} strokeWidth={1.5} />
-          <Area type="monotone" dataKey="b" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.15} strokeWidth={1.5} />
+          <Area type="monotone" dataKey="r" stroke="#DC2626" fill="#DC2626" fillOpacity={0.12} strokeWidth={1.5} />
+          <Area type="monotone" dataKey="g" stroke="#16A34A" fill="#16A34A" fillOpacity={0.12} strokeWidth={1.5} />
+          <Area type="monotone" dataKey="b" stroke="#2563EB" fill="#2563EB" fillOpacity={0.12} strokeWidth={1.5} />
         </AreaChart>
       </ResponsiveContainer>
 
@@ -31,7 +31,7 @@ export default function HistogramCard({ histogram }) {
           <div
             key={c.hex}
             title={`${c.hex} · ${c.percent}%`}
-            className="w-6 h-6 rounded border border-white/10"
+            className="w-6 h-6 rounded border border-black/[0.08]"
             style={{ background: c.hex }}
           />
         ))}

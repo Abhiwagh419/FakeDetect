@@ -19,7 +19,7 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex">
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 inset-x-0 h-14 border-b hairline bg-[var(--ink)]/95 backdrop-blur z-30 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 inset-x-0 h-14 border-b hairline bg-white/95 backdrop-blur z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/25 flex items-center justify-center">
             <ShieldCheck size={14} className="text-[var(--accent-strong)]" />
@@ -28,7 +28,7 @@ export default function AppShell({ children }) {
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/5 text-[var(--text)]"
+          className="p-2 rounded-lg hover:bg-black/[0.04] text-[var(--text)]"
           aria-label="Open navigation menu"
         >
           <Menu size={20} />
@@ -44,7 +44,7 @@ export default function AppShell({ children }) {
       )}
 
       <aside
-        className={`w-64 shrink-0 border-r hairline flex flex-col fixed h-screen bg-[var(--ink)] z-50 transition-transform duration-200 ${
+        className={`w-64 shrink-0 border-r hairline flex flex-col fixed h-screen bg-white shadow-[var(--shadow-sm)] z-50 transition-transform duration-200 ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
@@ -62,7 +62,7 @@ export default function AppShell({ children }) {
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="lg:hidden p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)]"
+            className="lg:hidden p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)]"
             aria-label="Close navigation menu"
           >
             <X size={18} />
@@ -80,7 +80,7 @@ export default function AppShell({ children }) {
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-[var(--accent-dim)] text-[var(--accent-strong)]"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/[0.04]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.03]"
                 }`
               }
             >

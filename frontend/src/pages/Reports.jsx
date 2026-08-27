@@ -75,7 +75,7 @@ export default function Reports() {
               <button
                 onClick={() => handleDownload(item.analysis_id)}
                 disabled={downloadingId === item.analysis_id}
-                className="mt-auto flex items-center justify-center gap-2 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent-strong)] text-xs font-semibold hover:bg-[var(--accent)] hover:text-black transition-colors disabled:opacity-50"
+                className="mt-auto flex items-center justify-center gap-2 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent-strong)] text-xs font-semibold hover:bg-[var(--accent)] hover:text-white transition-colors disabled:opacity-50"
               >
                 {downloadingId === item.analysis_id ? <Spinner size={13} /> : <FileDown size={13} />}
                 {item.report_available ? "Download Report" : "Generate & Download"}

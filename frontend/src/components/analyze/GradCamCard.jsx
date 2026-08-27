@@ -22,14 +22,14 @@ export default function GradCamCard({ gradcam, preview }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setEnlarged(true)}
-            className="p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+            className="p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
             aria-label="Enlarge Grad-CAM"
           >
             <Maximize2 size={14} />
           </button>
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+            className="p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
             aria-label="Download Grad-CAM image"
           >
             <Download size={14} />
@@ -41,7 +41,7 @@ export default function GradCamCard({ gradcam, preview }) {
         {preview && (
           <div>
             <p className="text-[10px] uppercase tracking-wide text-[var(--text-faint)] mb-1.5 font-mono">Original</p>
-            <img src={preview} alt="Original upload" className="w-full rounded-lg border border-white/10 aspect-square object-cover" />
+            <img src={preview} alt="Original upload" className="w-full rounded-lg border border-black/[0.08] aspect-square object-cover" />
           </div>
         )}
         <div>
@@ -49,7 +49,7 @@ export default function GradCamCard({ gradcam, preview }) {
           <img
             src={heatmapSrc}
             alt="Grad-CAM heatmap overlay"
-            className="w-full rounded-lg border border-white/10 aspect-square object-cover cursor-zoom-in"
+            className="w-full rounded-lg border border-black/[0.08] aspect-square object-cover cursor-zoom-in"
             onClick={() => setEnlarged(true)}
           />
         </div>

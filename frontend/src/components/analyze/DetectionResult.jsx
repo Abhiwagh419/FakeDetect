@@ -29,7 +29,7 @@ export default function DetectionResult({ result }) {
         <ProbabilityBar label="REAL" value={result.real_probability} variant="real" />
       </div>
 
-      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-black/[0.02] border border-black/[0.06]">
         <span className="text-xs text-[var(--text-muted)]">Confidence Tier</span>
         <StatusBadge variant="accent">{TIER_LABEL[result.model_confidence_tier]}</StatusBadge>
       </div>

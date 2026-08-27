@@ -21,14 +21,14 @@ export default function ForensicsCard({ jpegForensics, ela }) {
       )}
 
       {ela && (
-        <div className="mt-4 pt-4 border-t border-white/[0.06]">
+        <div className="mt-4 pt-4 border-t border-black/[0.06]">
           <p className="text-[10px] uppercase tracking-wide text-[var(--text-faint)] mb-1.5 font-mono">
             ELA Visualization
           </p>
           <img
             src={`data:image/png;base64,${ela.image_b64}`}
             alt="Error Level Analysis visualization"
-            className="w-full rounded-lg border border-white/10"
+            className="w-full rounded-lg border border-black/[0.08]"
           />
         </div>
       )}

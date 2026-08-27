@@ -79,7 +79,7 @@ export default function History() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by filename…"
-            className="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50"
+            className="w-full bg-black/[0.02] border border-black/[0.08] rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50"
           />
         </div>
         <div className="flex gap-2">
@@ -88,7 +88,7 @@ export default function History() {
               key={f || "all"}
               onClick={() => setFilter(f)}
               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                filter === f ? "bg-[var(--accent-dim)] text-[var(--accent-strong)]" : "text-[var(--text-muted)] hover:bg-white/5"
+                filter === f ? "bg-[var(--accent-dim)] text-[var(--accent-strong)]" : "text-[var(--text-muted)] hover:bg-black/[0.04]"
               }`}
             >
               {f || "All"}
@@ -111,7 +111,7 @@ export default function History() {
         <div className="glass-panel overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.08] text-left">
+              <tr className="border-b border-black/[0.07] text-left">
                 <th className="px-4 py-3 text-xs font-medium text-[var(--text-muted)]">Date</th>
                 <th className="px-4 py-3 text-xs font-medium text-[var(--text-muted)]">File</th>
                 <th className="px-4 py-3 text-xs font-medium text-[var(--text-muted)]">Result</th>
@@ -121,7 +121,7 @@ export default function History() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.analysis_id} className="border-b border-white/[0.05] last:border-0 hover:bg-white/[0.02]">
+                <tr key={item.analysis_id} className="border-b border-black/[0.05] last:border-0 hover:bg-black/[0.02]">
                   <td className="px-4 py-3 text-xs font-mono text-[var(--text-muted)]">
                     {new Date(item.timestamp).toLocaleDateString()}
                   </td>
@@ -134,13 +134,13 @@ export default function History() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => handleView(item.analysis_id)} className="p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text)]" aria-label="View analysis">
+                      <button onClick={() => handleView(item.analysis_id)} className="p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)] hover:text-[var(--text)]" aria-label="View analysis">
                         <Eye size={14} />
                       </button>
-                      <button onClick={() => handleDownloadReport(item.analysis_id)} className="p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text)]" aria-label="Download report">
+                      <button onClick={() => handleDownloadReport(item.analysis_id)} className="p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)] hover:text-[var(--text)]" aria-label="Download report">
                         <FileDown size={14} />
                       </button>
-                      <button onClick={() => handleDelete(item.analysis_id)} className="p-1.5 rounded-md hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--fake)]" aria-label="Delete analysis">
+                      <button onClick={() => handleDelete(item.analysis_id)} className="p-1.5 rounded-md hover:bg-black/[0.04] text-[var(--text-muted)] hover:text-[var(--fake)]" aria-label="Delete analysis">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -155,12 +155,12 @@ export default function History() {
       {(selected || detailLoading) && (
         <div className="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-6" onClick={() => setSelected(null)}>
           <div
-            className="glass-panel bg-[var(--panel-solid)] max-w-4xl w-full max-h-[85vh] overflow-y-auto p-6"
+            className="glass-panel bg-[var(--panel-solid)] shadow-[var(--shadow-md)] max-w-4xl w-full max-h-[85vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-bold text-lg">Analysis Detail</h2>
-              <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-white/5">
+              <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-black/[0.04]">
                 <X size={18} />
               </button>
             </div>

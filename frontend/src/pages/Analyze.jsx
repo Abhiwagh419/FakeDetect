@@ -76,7 +76,7 @@ export default function Analyze() {
           <button
             onClick={handleAnalyze}
             disabled={!file || loading}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-[var(--accent)] text-black font-semibold text-sm hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-[var(--accent)] text-white font-semibold text-sm hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? <Spinner size={16} /> : <ScanSearch size={16} />}
             {loading ? "Analyzing..." : "Run Detection"}

@@ -41,7 +41,7 @@ export default function UploadZone({ file, preview, onFileSelected, onClear, dis
   if (file && preview) {
     return (
       <div>
-        <div className="scan-frame border border-white/10 bg-black/30">
+        <div className="scan-frame border border-black/[0.08] bg-black/[0.03]">
           <span className="corner-tl" />
           <span className="corner-br" />
           <img src={preview} alt="Selected upload preview" className="w-full max-h-[420px] object-contain" />
@@ -77,7 +77,7 @@ export default function UploadZone({ file, preview, onFileSelected, onClear, dis
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl py-16 px-6 cursor-pointer transition-colors ${
-          dragOver ? "border-[var(--accent)] bg-[var(--accent-dim)]" : "border-white/10 hover:border-white/20"
+          dragOver ? "border-[var(--accent)] bg-[var(--accent-dim)]" : "border-black/[0.08] hover:border-black/[0.16]"
         }`}
       >
         <div className="w-12 h-12 rounded-full bg-[var(--accent-dim)] flex items-center justify-center">

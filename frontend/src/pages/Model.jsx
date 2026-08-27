@@ -76,7 +76,7 @@ export default function Model() {
         <Card title="Classification Report">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left border-b border-white/[0.08]">
+              <tr className="text-left border-b border-black/[0.07]">
                 <th className="py-2 text-xs text-[var(--text-muted)] font-medium">Class</th>
                 <th className="py-2 text-xs text-[var(--text-muted)] font-medium">Precision</th>
                 <th className="py-2 text-xs text-[var(--text-muted)] font-medium">Recall</th>
@@ -85,7 +85,7 @@ export default function Model() {
             </thead>
             <tbody>
               {Object.entries(cr).map(([cls, m]) => (
-                <tr key={cls} className="border-b border-white/[0.05] last:border-0">
+                <tr key={cls} className="border-b border-black/[0.05] last:border-0">
                   <td className="py-2.5 font-medium">{cls}</td>
                   <td className="py-2.5 font-mono text-xs">{m.precision.toFixed(2)}</td>
                   <td className="py-2.5 font-mono text-xs">{m.recall.toFixed(2)}</td>

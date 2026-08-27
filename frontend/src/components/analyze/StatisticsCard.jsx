@@ -28,10 +28,10 @@ export default function StatisticsCard({ statistics }) {
       <StatBar label="Sharpness" pct={sharpness.display_percent} note={sharpness.label} />
       <StatBar label="Noise" pct={noise.display_percent} note={noise.label} />
 
-      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-white/[0.06]">
+      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-black/[0.06]">
         <span className="text-xs text-[var(--text-muted)]">Average RGB</span>
         <div
-          className="w-6 h-6 rounded border border-white/10"
+          className="w-6 h-6 rounded border border-black/[0.08]"
           style={{ background: `rgb(${average_rgb.r}, ${average_rgb.g}, ${average_rgb.b})` }}
         />
         <span className="text-xs font-mono text-[var(--text)]">
