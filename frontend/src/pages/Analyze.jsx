@@ -18,7 +18,7 @@ export default function Analyze() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [normalizeDomain, setNormalizeDomain] = useState(false);
+  const [normalizeDomain, setNormalizeDomain] = useState(true);
 
   useEffect(() => {
     return () => {
