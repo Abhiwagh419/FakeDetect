@@ -7,8 +7,9 @@ image statistics, cryptographic hashing, JPEG/ELA analysis, Grad-CAM
 explainability, and a downloadable professional PDF report.
 
 All inference and analysis happens locally. No third-party AI-detection API
-is used — the model was trained from scratch (transfer learning) on the
-CIFAKE dataset and does all the work on your machine.
+is used — the model was trained from scratch (transfer learning) on
+CIFAKE plus a supplementary real-vs-AI-generated faces dataset, and does
+all the work on your machine.
 
 ---
 
@@ -78,21 +79,26 @@ that was already working was broken in the process.
 
 | | |
 |---|---|
-| Architecture | ResNet18 (ImageNet-pretrained; `layer4` + final classifier fine-tuned) |
+| Architecture | ResNet18 (ImageNet-pretrained; `layer3` + `layer4` + final classifier fine-tuned) |
 | Task | Binary classification — FAKE (AI-generated) vs. REAL |
-| Dataset | [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) — Real and AI-Generated Synthetic Images |
-| Training samples | 100,000 (50,000 REAL / 50,000 FAKE) |
-| Test samples | 20,000 (10,000 REAL / 10,000 FAKE) |
-| Epochs | 8, on a Google Colab NVIDIA T4 GPU |
-| Best validation accuracy | 97.77% |
-| Test accuracy | 97.63% |
+| Dataset | [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) (objects/animals/vehicles) merged with a [real-vs-AI-generated faces dataset](https://www.kaggle.com/datasets/philosopher0808/real-vs-ai-generated-faces-dataset) (FFHQ real faces vs. Stable Diffusion / StyleGAN / SFHQ / faceswap fakes), so the model covers people as well as objects |
+| Training samples | 140,000 (70,000 REAL / 70,000 FAKE) |
+| Test samples | 26,000 (13,000 REAL / 13,000 FAKE) |
+| Epochs | 12, on a Google Colab NVIDIA T4 GPU |
+| Best validation accuracy | 97.62% |
+| Test accuracy | 97.62% |
+
+Training also uses resolution/sharpness and JPEG-compression augmentation
+(see `train_colab.py`) so the model isn't biased toward flagging genuinely
+sharp, high-resolution real photos as FAKE — a known failure mode of
+CIFAKE-only models, whose native images are only 32×32px.
 
 **Confusion matrix (test set):**
 
 |              | Predicted FAKE | Predicted REAL |
 |--------------|-----------------|-----------------|
-| Actual FAKE  | 9,828           | 172             |
-| Actual REAL  | 302             | 9,698           |
+| Actual FAKE  | 12,711          | 289             |
+| Actual REAL  | 330             | 12,670          |
 
 **Classification report:**
 
@@ -294,9 +300,11 @@ Verified against a live running backend + frontend:
 
 ## Known limitations
 
-- The classifier is trained and evaluated on CIFAKE; it may not generalize
-  to generative models or image pipelines outside that training
-  distribution.
+- The classifier is trained and evaluated on CIFAKE plus a supplementary
+  faces dataset; it may not generalize to generative models or image
+  pipelines outside that training distribution — in particular, results
+  will vary against generators not represented in training (e.g. very
+  recent tools such as Midjourney v6, DALL-E 3, or Flux).
 - Sharpness and noise statistics are heuristic estimates (Laplacian
   variance / high-frequency residual), not calibrated, standardized image-
   quality scores.
