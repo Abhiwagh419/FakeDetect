@@ -33,6 +33,10 @@ tmp/
 # Generated reports
 reports/generated/
 
+# Analysis artifacts (uploaded images + generated Grad-CAM overlays saved
+# by the app for History/Reports — user-generated at runtime, not source)
+data/artifacts/
+
 # Local database
 *.sqlite
 *.sqlite3
