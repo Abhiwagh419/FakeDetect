@@ -1,6 +1,6 @@
-export default function Card({ title, subtitle, icon: Icon, action, children, className = "" }) {
+export default function Card({ title, subtitle, icon: Icon, action, children, className = "", style }) {
   return (
-    <div className={`glass-panel p-5 ${className}`}>
+    <div className={`glass-panel p-5 ${className}`} style={style}>
       {(title || action) && (
         <div className="flex items-start justify-between mb-4 gap-3">
           <div className="flex items-center gap-2.5">

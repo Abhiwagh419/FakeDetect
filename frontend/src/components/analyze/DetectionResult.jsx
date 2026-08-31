@@ -17,11 +17,16 @@ export default function DetectionResult({ result }) {
       <div className="flex items-center justify-between mb-5">
         <div>
           <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide font-mono mb-1">Prediction</p>
-          <p className={`font-display font-bold text-2xl ${isFake ? "text-[var(--fake)]" : "text-[var(--real)]"}`}>
+          <p
+            className={`font-display font-bold text-2xl ${isFake ? "text-[var(--fake)]" : "text-[var(--real)]"}`}
+            style={{ animation: "verdict-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          >
             {isFake ? "AI-GENERATED" : "REAL PHOTOGRAPH"}
           </p>
         </div>
-        <StatusBadge variant={isFake ? "fake" : "real"}>{result.prediction}</StatusBadge>
+        <div style={{ animation: "verdict-pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both" }}>
+          <StatusBadge variant={isFake ? "fake" : "real"}>{result.prediction}</StatusBadge>
+        </div>
       </div>
 
       <div className="space-y-3 mb-5">

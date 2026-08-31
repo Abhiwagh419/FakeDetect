@@ -3,6 +3,7 @@ import { Cpu, Database, Target, Layers3 } from "lucide-react";
 import Card from "../components/common/Card";
 import KeyValueRow from "../components/common/KeyValueRow";
 import Spinner from "../components/common/Spinner";
+import AnimatedNumber from "../components/common/AnimatedNumber";
 import { getModelInfo } from "../services/api";
 
 export default function Model() {
@@ -38,14 +39,14 @@ export default function Model() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <Card title="Architecture" icon={Cpu}>
+        <Card title="Architecture" icon={Cpu} className="stagger-in lift-on-hover" style={{ "--stagger-index": 0 }}>
           <KeyValueRow label="Model" value={info.architecture} />
           <KeyValueRow label="Task" value={info.task} />
           <KeyValueRow label="Classes" value={info.classes.join(" / ")} />
           <KeyValueRow label="Inference Device" value={info.device} mono />
         </Card>
 
-        <Card title="Dataset" icon={Database}>
+        <Card title="Dataset" icon={Database} className="stagger-in lift-on-hover" style={{ "--stagger-index": 1 }}>
           <KeyValueRow label="Dataset" value={info.dataset} />
           <KeyValueRow label="Training Samples" value={`${info.train_samples.toLocaleString()} (${info.train_real.toLocaleString()} REAL / ${info.train_fake.toLocaleString()} FAKE)`} />
           <KeyValueRow label="Test Samples" value={`${info.test_samples.toLocaleString()} (${info.test_real.toLocaleString()} REAL / ${info.test_fake.toLocaleString()} FAKE)`} />
@@ -55,25 +56,25 @@ export default function Model() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-        <Card title="Best Validation Accuracy" icon={Target} className="text-center">
+        <Card title="Best Validation Accuracy" icon={Target} className="text-center stagger-in lift-on-hover" style={{ "--stagger-index": 2 }}>
           <p className="font-display font-bold text-4xl text-[var(--accent-strong)] text-center py-4">
-            {(info.best_val_accuracy * 100).toFixed(2)}%
+            <AnimatedNumber value={info.best_val_accuracy * 100} decimals={2} suffix="%" />
           </p>
         </Card>
-        <Card title="Test Accuracy" icon={Target} className="text-center">
+        <Card title="Test Accuracy" icon={Target} className="text-center stagger-in lift-on-hover" style={{ "--stagger-index": 3 }}>
           <p className="font-display font-bold text-4xl text-[var(--real)] text-center py-4">
-            {(info.test_accuracy * 100).toFixed(2)}%
+            <AnimatedNumber value={info.test_accuracy * 100} decimals={2} suffix="%" />
           </p>
         </Card>
-        <Card title="Test Set Size" icon={Layers3} className="text-center">
+        <Card title="Test Set Size" icon={Layers3} className="text-center stagger-in lift-on-hover" style={{ "--stagger-index": 4 }}>
           <p className="font-display font-bold text-4xl text-[var(--text)] text-center py-4">
-            {info.test_samples.toLocaleString()}
+            <AnimatedNumber value={info.test_samples} decimals={0} />
           </p>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <Card title="Classification Report">
+        <Card title="Classification Report" className="stagger-in lift-on-hover" style={{ "--stagger-index": 5 }}>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-black/[0.07]">
@@ -96,7 +97,7 @@ export default function Model() {
           </table>
         </Card>
 
-        <Card title="Confusion Matrix (Test Set)">
+        <Card title="Confusion Matrix (Test Set)" className="stagger-in lift-on-hover" style={{ "--stagger-index": 6 }}>
           <table className="w-full text-sm text-center">
             <thead>
               <tr>
@@ -125,21 +126,22 @@ export default function Model() {
         </Card>
       </div>
 
-      <Card title="Transfer Learning Approach">
+      <Card title="Transfer Learning Approach" className="stagger-in lift-on-hover" style={{ "--stagger-index": 7 }}>
         <p className="text-sm text-[var(--text-muted)] leading-relaxed">
           The model starts from ImageNet-pretrained ResNet18 weights. Early convolutional layers are
-          frozen to retain general low-level visual features; only <code className="font-mono text-[var(--accent-strong)]">layer4</code> and
-          the final fully-connected classifier are fine-tuned on CIFAKE. This reduces overfitting risk
+          frozen to retain general low-level visual features; only <code className="font-mono text-[var(--accent-strong)]">layer3</code>, <code className="font-mono text-[var(--accent-strong)]">layer4</code>, and
+          the final fully-connected classifier are fine-tuned. This reduces overfitting risk
           on a moderately-sized dataset and trains substantially faster than fine-tuning the full network.
         </p>
       </Card>
 
       <div className="glass-panel p-5 mt-5">
         <p className="text-xs text-[var(--text-faint)] leading-relaxed">
-          FakeDetect uses a machine-learning classifier trained and evaluated on the CIFAKE dataset.
-          Its predictions are probabilistic and may not generalize perfectly to images generated by AI
-          systems or image-processing pipelines outside the training distribution. Metadata and forensic
-          indicators are supplementary signals and should not be treated as definitive proof of image origin.
+          FakeDetect uses a machine-learning classifier trained on CIFAKE plus a supplementary
+          real-vs-AI-generated faces dataset. Its predictions are probabilistic and may not generalize
+          perfectly to images generated by AI systems or generators outside the training distribution.
+          Metadata and forensic indicators are supplementary signals and should not be treated as
+          definitive proof of image origin.
         </p>
       </div>
     </div>

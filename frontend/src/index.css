@@ -14,14 +14,17 @@
   --text-muted: #5B6577;
   --text-faint: #8A93A6;
 
-  --accent: #2A4FD9;
-  --accent-strong: #1B3494;
-  --accent-dim: rgba(42, 79, 217, 0.09);
+  --accent: #4832FF;
+  --accent-strong: #2E1EC7;
+  --accent-dim: rgba(72, 50, 255, 0.09);
+  --accent-glow: rgba(72, 50, 255, 0.35);
 
-  --fake: #C22B3D;
-  --fake-dim: rgba(194, 43, 61, 0.08);
-  --real: #157A4A;
-  --real-dim: rgba(21, 122, 74, 0.08);
+  --fake: #DC2A3F;
+  --fake-dim: rgba(220, 42, 63, 0.08);
+  --fake-glow: rgba(220, 42, 63, 0.45);
+  --real: #0F9D58;
+  --real-dim: rgba(15, 157, 88, 0.08);
+  --real-glow: rgba(15, 157, 88, 0.45);
   --amber: #9A6400;
   --amber-dim: rgba(154, 100, 0, 0.09);
 
@@ -44,8 +47,8 @@ html, body, #root {
 
 body {
   background:
-    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(42, 79, 217, 0.05), transparent),
-    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(27, 52, 148, 0.04), transparent),
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(72, 50, 255, 0.055), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(46, 30, 199, 0.04), transparent),
     var(--ink);
   color: var(--text);
   font-family: var(--font-body);
@@ -68,7 +71,7 @@ body {
   border-radius: 4px;
 }
 
-.font-display { font-family: var(--font-display); }
+.font-display { font-family: var(--font-display); letter-spacing: -0.015em; }
 .font-mono { font-family: var(--font-mono); }
 
 /* ---------------------------------------------------------------------- */
@@ -126,7 +129,7 @@ body {
   position: absolute;
   left: 0; right: 0;
   height: 40%;
-  background: linear-gradient(180deg, transparent, rgba(42, 79, 217, 0.16), transparent);
+  background: linear-gradient(180deg, transparent, rgba(72, 50, 255, 0.18), transparent);
   animation: sweep 1.8s ease-in-out infinite;
 }
 @keyframes sweep {
@@ -134,8 +137,101 @@ body {
   100% { top: 100%; }
 }
 
+/* Idle breathing while the frame waits for an image / result */
+.scan-frame.is-idle::before,
+.scan-frame.is-idle::after,
+.scan-frame.is-idle > .corner-tl,
+.scan-frame.is-idle > .corner-br {
+  animation: breathe 2.6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* Lock-on: corner brackets snap taut and flash the verdict color the
+   instant a result comes back — the page's signature moment. */
+.scan-frame.lock-real::before,
+.scan-frame.lock-real::after,
+.scan-frame.lock-real > .corner-tl,
+.scan-frame.lock-real > .corner-br {
+  animation: lock-on 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  border-color: var(--real);
+}
+.scan-frame.lock-fake::before,
+.scan-frame.lock-fake::after,
+.scan-frame.lock-fake > .corner-tl,
+.scan-frame.lock-fake > .corner-br {
+  animation: lock-on 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  border-color: var(--fake);
+}
+@keyframes lock-on {
+  0% { width: 30px; height: 30px; opacity: 0.4; }
+  55% { width: 12px; height: 12px; opacity: 1; }
+  100% { width: 18px; height: 18px; opacity: 0.85; }
+}
+.scan-frame.lock-real { animation: glow-real 0.7s ease-out; }
+.scan-frame.lock-fake { animation: glow-fake 0.7s ease-out; }
+@keyframes glow-real { 0% { box-shadow: 0 0 0 0 var(--real-glow); } 100% { box-shadow: 0 0 0 14px rgba(15,157,88,0); } }
+@keyframes glow-fake { 0% { box-shadow: 0 0 0 0 var(--fake-glow); } 100% { box-shadow: 0 0 0 14px rgba(220,42,63,0); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .scan-sweep::after { animation: none; display: none; }
+  .scan-sweep::after,
+  .scan-frame.is-idle::before, .scan-frame.is-idle::after,
+  .scan-frame.is-idle > .corner-tl, .scan-frame.is-idle > .corner-br,
+  .scan-frame.lock-real, .scan-frame.lock-fake,
+  .scan-frame.lock-real::before, .scan-frame.lock-real::after,
+  .scan-frame.lock-real > .corner-tl, .scan-frame.lock-real > .corner-br,
+  .scan-frame.lock-fake::before, .scan-frame.lock-fake::after,
+  .scan-frame.lock-fake > .corner-tl, .scan-frame.lock-fake > .corner-br {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Motion system: card entrance stagger + interactive hover-lift          */
+/* ---------------------------------------------------------------------- */
+.stagger-in {
+  animation: stagger-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger-index, 0) * 60ms);
+}
+@keyframes stagger-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lift-on-hover {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease-out;
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes verdict-pop {
+  0% { opacity: 0; transform: scale(0.85) translateY(4px); }
+  60% { opacity: 1; transform: scale(1.04) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-in { animation: none; }
+  .lift-on-hover { transition: none; }
+  .lift-on-hover:hover { transform: none; }
+  [style*="verdict-pop"] { animation: none !important; }
+}
+
+/* Sliding active-nav indicator (Linear-style) */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 2.375rem;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 0;
 }
 
 /* ---------------------------------------------------------------------- */

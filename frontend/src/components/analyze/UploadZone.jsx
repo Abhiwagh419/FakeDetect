@@ -4,7 +4,7 @@ import { UploadCloud, X, ImageIcon } from "lucide-react";
 const ALLOWED_EXT = ["jpg", "jpeg", "png", "webp"];
 const MAX_MB = 15;
 
-export default function UploadZone({ file, preview, onFileSelected, onClear, disabled }) {
+export default function UploadZone({ file, preview, onFileSelected, onClear, disabled, verdict }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState(null);
@@ -39,9 +39,10 @@ export default function UploadZone({ file, preview, onFileSelected, onClear, dis
   );
 
   if (file && preview) {
+    const lockClass = verdict === "REAL" ? "lock-real" : verdict === "FAKE" ? "lock-fake" : "is-idle";
     return (
       <div>
-        <div className="scan-frame border border-black/[0.08] bg-black/[0.03]">
+        <div className={`scan-frame border border-black/[0.08] bg-black/[0.03] ${lockClass}`}>
           <span className="corner-tl" />
           <span className="corner-br" />
           <img src={preview} alt="Selected upload preview" className="w-full max-h-[420px] object-contain" />

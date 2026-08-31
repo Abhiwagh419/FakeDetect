@@ -71,12 +71,13 @@ export default function Analyze() {
             onFileSelected={handleFileSelected}
             onClear={handleClear}
             disabled={loading}
+            verdict={result?.prediction}
           />
 
           <button
             onClick={handleAnalyze}
             disabled={!file || loading}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-[var(--accent)] text-white font-semibold text-sm hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-[var(--accent)] text-white font-semibold text-sm hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[var(--shadow-md)]"
           >
             {loading ? <Spinner size={16} /> : <ScanSearch size={16} />}
             {loading ? "Analyzing..." : "Run Detection"}
@@ -130,16 +131,16 @@ export default function Analyze() {
 
           {result && !loading && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <DetectionResult result={result} />
-              <ForensicSummaryCard result={result} />
-              <ImageDetailsCard image={result.image} hash={result.hash} />
-              <StatisticsCard statistics={result.statistics} />
-              <HistogramCard histogram={result.histogram} />
-              <MetadataCard metadata={result.metadata} />
-              <div className="md:col-span-2">
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 0 }}><DetectionResult result={result} /></div>
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 1 }}><ForensicSummaryCard result={result} /></div>
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 2 }}><ImageDetailsCard image={result.image} hash={result.hash} /></div>
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 3 }}><StatisticsCard statistics={result.statistics} /></div>
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 4 }}><HistogramCard histogram={result.histogram} /></div>
+              <div className="stagger-in lift-on-hover" style={{ "--stagger-index": 5 }}><MetadataCard metadata={result.metadata} /></div>
+              <div className="md:col-span-2 stagger-in lift-on-hover" style={{ "--stagger-index": 6 }}>
                 <GradCamCard gradcam={result.gradcam} preview={preview} />
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 stagger-in lift-on-hover" style={{ "--stagger-index": 7 }}>
                 <ForensicsCard jpegForensics={result.jpeg_forensics} ela={result.ela} />
               </div>
             </div>

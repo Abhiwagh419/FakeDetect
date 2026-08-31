@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, ScanSearch, History as HistoryIcon,
   FileText, Cpu, ShieldCheck, Menu, X,
@@ -15,6 +15,26 @@ const NAV_ITEMS = [
 
 export default function AppShell({ children }) {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navRef = useRef(null);
+  const itemRefs = useRef({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0 });
+
+  useEffect(() => {
+    const activeItem = NAV_ITEMS.find((item) =>
+      item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+    );
+    const el = activeItem && itemRefs.current[activeItem.to];
+    if (el) {
+      // nav has position:relative, so el.offsetTop is already relative to
+      // nav itself — the indicator (also positioned relative to nav) can
+      // use it directly.
+      setIndicatorStyle({
+        transform: `translateY(${el.offsetTop}px)`,
+        opacity: 1,
+      });
+    }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex">
@@ -69,18 +89,20 @@ export default function AppShell({ children }) {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav ref={navRef} className="relative flex-1 px-3 py-4 space-y-1">
+          <div className="nav-indicator" style={indicatorStyle} />
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
+              ref={(el) => { itemRefs.current[to] = el; }}
               to={to}
               end={end}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                `relative z-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                   isActive
-                    ? "bg-[var(--accent-dim)] text-[var(--accent-strong)]"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.03]"
+                    ? "text-[var(--accent-strong)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
                 }`
               }
             >
