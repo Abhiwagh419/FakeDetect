@@ -217,7 +217,7 @@ SQLite, single table (`backend/data/database.sqlite`):
 
 ```sql
 CREATE TABLE history (
-    id TEXT PRIMARY KEY,           -- e.g. FD-20260811-1A8BF041
+    id TEXT PRIMARY KEY,        
     filename TEXT NOT NULL,
     created_at TEXT NOT NULL,
     prediction TEXT NOT NULL,
@@ -228,7 +228,7 @@ CREATE TABLE history (
     height INTEGER,
     file_size INTEGER,
     report_available INTEGER DEFAULT 0,
-    analysis_json TEXT NOT NULL     -- full analysis payload, for detail view + report regeneration
+    analysis_json TEXT NOT NULL     
 );
 ```
 
