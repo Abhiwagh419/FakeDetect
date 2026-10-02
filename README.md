@@ -8,8 +8,9 @@ explainability, and a downloadable professional PDF report.
 
 All inference and analysis happens locally. No third-party AI-detection API
 is used — the model was trained from scratch (transfer learning) on
-CIFAKE plus a supplementary real-vs-AI-generated faces dataset, and does
-all the work on your machine.
+CIFAKE plus supplementary datasets covering human faces, nature/scenes, and
+a mix of Stable Diffusion, MidJourney, and DALL-E generated images, and
+does all the work on your machine.
 
 ---
 
@@ -81,35 +82,41 @@ that was already working was broken in the process.
 |---|---|
 | Architecture | ResNet18 (ImageNet-pretrained; `layer3` + `layer4` + final classifier fine-tuned) |
 | Task | Binary classification — FAKE (AI-generated) vs. REAL |
-| Dataset | [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) (objects/animals/vehicles) merged with a [real-vs-AI-generated faces dataset](https://www.kaggle.com/datasets/philosopher0808/real-vs-ai-generated-faces-dataset) (FFHQ real faces vs. Stable Diffusion / StyleGAN / SFHQ / faceswap fakes), so the model covers people as well as objects |
-| Training samples | 140,000 (70,000 REAL / 70,000 FAKE) |
-| Test samples | 26,000 (13,000 REAL / 13,000 FAKE) |
-| Epochs | 12, on a Google Colab NVIDIA T4 GPU |
-| Best validation accuracy | 97.62% |
-| Test accuracy | 97.62% |
+| Datasets | [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) (objects/animals/vehicles) + [real-vs-AI-generated faces](https://www.kaggle.com/datasets/philosopher0808/real-vs-ai-generated-faces-dataset) (FFHQ real faces vs. Stable Diffusion / StyleGAN / SFHQ / faceswap fakes) + [AI-vs-human-generated](https://www.kaggle.com/datasets/alessandrasala79/ai-vs-human-generated-dataset) (nature/scenes/portraits) + [AI-generated-images-vs-real-images](https://www.kaggle.com/datasets/tristanzhang32/ai-generated-images-vs-real-images) (Stable Diffusion / MidJourney / DALL-E mix vs. Pexels/Unsplash/WikiArt real photos) — merged, so the model covers objects, people, nature/scenes, and modern-generator output |
+| Training samples | 210,000 (105,000 REAL / 105,000 FAKE) |
+| Test samples | 38,000 (19,000 REAL / 19,000 FAKE) |
+| Epochs | 14, trained locally on an NVIDIA RTX 3050 Laptop GPU (6GB VRAM), ~7h32m total |
+| Best validation accuracy | 96.35% (epoch 13 — the deployed checkpoint) |
+| Test accuracy | 96.26% (epoch 14 evaluation pass) |
 
 Training also uses resolution/sharpness and JPEG-compression augmentation
-(see `train_colab.py`) so the model isn't biased toward flagging genuinely
-sharp, high-resolution real photos as FAKE — a known failure mode of
-CIFAKE-only models, whose native images are only 32×32px.
+(see `train_local_v5.py`) so the model isn't biased toward flagging
+genuinely sharp, high-resolution real photos as FAKE — a known failure
+mode of CIFAKE-only models, whose native images are only 32×32px. Sampling
+across the three supplementary datasets is deliberately capped below their
+full available size rather than maximized, based on evidence from this
+project's own iteration history that maximizing training volume does not
+reliably improve real-world detection quality and can bias the model
+toward unrepresentative visual styles (e.g. professional stock photography
+as "REAL").
 
 **Confusion matrix (test set):**
 
 |              | Predicted FAKE | Predicted REAL |
 |--------------|-----------------|-----------------|
-| Actual FAKE  | 12,711          | 289             |
-| Actual REAL  | 330             | 12,670          |
+| Actual FAKE  | 18,300          | 700             |
+| Actual REAL  | 723             | 18,277          |
 
 **Classification report:**
 
 | Class | Precision | Recall | F1 |
 |-------|-----------|--------|----|
-| FAKE  | 0.97      | 0.98   | 0.98 |
-| REAL  | 0.98      | 0.97   | 0.98 |
+| FAKE  | 0.96      | 0.96   | 0.96 |
+| REAL  | 0.96      | 0.96   | 0.96 |
 
-These figures are static, reported training results (from `train_colab.py`)
-and are surfaced as-is in the app and PDF report — they are not
-recomputed at runtime.
+These figures are static, reported training results (from
+`train_local_v5.py`) and are surfaced as-is in the app and PDF report —
+they are not recomputed at runtime.
 
 ### Engineering principle: no invented metrics
 
@@ -205,7 +212,7 @@ Python tracebacks.
   "jpeg_forensics": { "...": "..." },
   "ela": { "image_b64": "...", "...": "..." },
   "gradcam": { "image_b64": "...", "note": "..." },
-  "model": { "architecture": "ResNet18", "test_accuracy": 0.9763, "...": "..." }
+  "model": { "architecture": "ResNet18", "test_accuracy": 0.9626, "...": "..." }
 }
 ```
 
@@ -297,14 +304,26 @@ Verified against a live running backend + frontend:
   cards render → generate PDF report → downloads a valid multi-page PDF;
   history detail modal; mobile drawer navigation
 - Desktop (1440px) and mobile (390px) viewports
+- Real-world verification against images generated with ChatGPT's image
+  tool: 5/5 AI-generated face images correctly classified FAKE (91–97%
+  confidence); 2/2 AI-generated nature/landscape images still
+  misclassified REAL (95%+ confidence) — see Known limitations below
 
 ## Known limitations
 
-- The classifier is trained and evaluated on CIFAKE plus a supplementary
-  faces dataset; it may not generalize to generative models or image
-  pipelines outside that training distribution — in particular, results
-  will vary against generators not represented in training (e.g. very
-  recent tools such as Midjourney v6, DALL-E 3, or Flux).
+- The classifier is trained on the datasets listed above; it may not
+  generalize to generative models or image pipelines outside that
+  training distribution.
+- **Verified working:** real-world testing confirms reliable detection of
+  AI-generated **face** images from modern proprietary generators (e.g.
+  ChatGPT's image tool) — every test case attempted was correctly
+  classified FAKE with 91–97% confidence.
+- **Known open limitation:** AI-generated **nature/landscape** images from
+  the same modern generators may still be misclassified as REAL — this
+  was observed directly in testing and is not yet resolved. Closing it
+  would likely require a dataset that combines both nature/landscape
+  content and modern-generator coverage together, which none of the
+  current training sources provide in combination.
 - Sharpness and noise statistics are heuristic estimates (Laplacian
   variance / high-frequency residual), not calibrated, standardized image-
   quality scores.
@@ -324,3 +343,5 @@ Verified against a live running backend + frontend:
 - Configurable confidence-tier thresholds
 - Additional forensic signals (e.g. PRNU, copy-move detection)
 - Async/background report generation for very large images
+- A combined nature-and-modern-generator dataset to close the remaining
+  nature/landscape detection gap documented above

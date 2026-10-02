@@ -13,19 +13,22 @@ from sklearn.metrics import classification_report, confusion_matrix
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
 
-DATA_DIR = "./cifake-real-and-ai-generated-synthetic-images"  
-BATCH_SIZE = 32          
+DATA_DIR = "./cifake-real-and-ai-generated-synthetic-images"   # CIFAKE lives here; everything else merges INTO this same tree
+BATCH_SIZE = 32          # reduced from 64 to stay safely within 6GB VRAM
 EPOCHS = 14
 LR = 1e-4
 IMG_SIZE = 224
-NUM_WORKERS = 4        
+NUM_WORKERS = 4          # your local CPU is dedicated, not shared like Colab's — safe to raise
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-USE_AMP = DEVICE.type == "cuda"  
+USE_AMP = DEVICE.type == "cuda"   # mixed precision — big win on your Ampere GPU
 
 CHECKPOINT_DIR = "./checkpoints"
 LOCAL_RESUME_PATH = os.path.join(CHECKPOINT_DIR, "resume_state.pt")
 BEST_MODEL_PATH = os.path.join(CHECKPOINT_DIR, "best_model.pt")
 
+# ============================================================
+# CONFIG — face dataset (same sources/counts as the Colab v4 run)
+# ============================================================
 FACE_REAL_DIRS = [
     "./real-vs-ai-generated-faces-dataset/data_source/data_source/ffhq",
 ]
@@ -41,11 +44,14 @@ FACE_FAKE_DIRS = [
 MAX_FACE_TRAIN_PER_CLASS = 20000
 MAX_FACE_TEST_PER_CLASS = 3000
 
+# ============================================================
+# CONFIG — nature/scene dataset (capped moderately, not maxed — see v5 notes)
+# ============================================================
 NATURE_CSV = "./ai-vs-human-generated-dataset/train.csv"
 NATURE_ROOT = "./ai-vs-human-generated-dataset"
-NATURE_REAL_LABEL = 0   
-NATURE_FAKE_LABEL = 1   
-MAX_NATURE_TRAIN_PER_CLASS = 20000   
+NATURE_REAL_LABEL = 0   # per dataset documentation: 0 = authentic/human-captured
+NATURE_FAKE_LABEL = 1   # per dataset documentation: 1 = AI-generated
+MAX_NATURE_TRAIN_PER_CLASS = 20000   # reduced from v4's 36,000 (full pool) — diminishing returns
 MAX_NATURE_TEST_PER_CLASS = 3000
 
 MIX_REAL_DIRS = [
@@ -58,6 +64,11 @@ MIX_FAKE_DIRS = [
 ]
 MAX_MIX_TRAIN_PER_CLASS = 15000   # out of 24,000 available in train/ alone (30,000 pooled)
 MAX_MIX_TEST_PER_CLASS = 3000
+
+
+# ============================================================
+# Dataset merging helpers
+# ============================================================
 
 def collect_images(dirs):
     files = []
@@ -176,6 +187,11 @@ def merge_csv_labeled_into_cifake(csv_path, root_dir, fake_label, real_label,
         print(f"{cls_name}: merged {len(train_files)} train + {len(test_files)} test nature/scene images "
               f"(from {len(paths)} total available)")
 
+
+# ============================================================
+# Custom augmentations
+# ============================================================
+
 class RandomResolutionJitter:
     """Randomly degrade then restore resolution, so the model can't use
     sharpness as a shortcut for REAL vs FAKE."""
@@ -219,6 +235,10 @@ class RandomGaussianBlur:
             return img
         radius = random.uniform(*self.radius_range)
         return img.filter(ImageFilter.GaussianBlur(radius=radius))
+
+# ============================================================
+# Train/eval loops (AMP-aware)
+# ============================================================
 
 def train_one_epoch(model, loader, optimizer, criterion, scaler, device, use_amp):
     model.train()
@@ -340,6 +360,7 @@ def main():
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.5)
     scaler = torch.cuda.amp.GradScaler(enabled=USE_AMP)
 
+    # ---- Resume support (local safety net against reboots/Ctrl+C) ----
     start_epoch = 0
     best_acc = 0.0
     if os.path.exists(LOCAL_RESUME_PATH):
@@ -376,6 +397,8 @@ def main():
             }, BEST_MODEL_PATH)
             print(f"  -> New best model saved to {BEST_MODEL_PATH} (val_acc={val_acc:.4f})")
 
+        # Save full resume state every epoch (not just on improvement), so
+        # an interruption after a non-improving epoch still resumes right.
         torch.save({
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
@@ -392,4 +415,9 @@ def main():
     print(confusion_matrix(labels, preds))
 
 if __name__ == "__main__":
+    # REQUIRED on Windows: DataLoader with num_workers > 0 spawns child
+    # processes that re-import this script. Without this guard, each child
+    # would re-run the whole script from the top, causing a crash or an
+    # infinite process-spawning loop. This is a Windows-specific quirk —
+    # Colab (Linux) never needed it.
     main()

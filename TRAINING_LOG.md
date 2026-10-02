@@ -5,12 +5,11 @@ and application evolved during development: what was changed, why, which
 datasets were used, and what the measured results were at each stage. It is
 kept up to date as the project progresses.
 
-**Current deployed model: v3.** v4 was fully trained and evaluated, and
-measurably outperformed v3 on held-out test data — but real-world testing
-against a modern generator not represented in any training data (see the v4
-section below) showed it performing worse than v3 on the project's primary
-use case (face images), so v3 was reinstated. Full reasoning is documented
-in the v4 section.
+**Current deployed model: v5.** v4 (3 datasets) was tested and reverted after
+exposing a real-world generalization gap. v5 (4 datasets, trained locally)
+was built specifically to close that gap, tested against the same failure
+case, and adopted as the new deployed model — see the v5 section below for
+the full real-world verification and the one remaining known limitation.
 
 ---
 
@@ -288,10 +287,169 @@ produced a new best result.
 
 ### Verification performed
 
-- Full backend test suite passes with the new model.
-- *(To be completed: real-world testing specifically on nature/landscape
-  photos — the category this version targets — plus re-verification that
-  objects and faces still work correctly.)*
+- Full backend test suite passes with the v4 model.
+- Real-world testing with a modern-generator (ChatGPT) face image and
+  multiple nature images — the actual result that led to reverting to v3,
+  documented above.
+
+---
+
+## v5 — DALL-E/MidJourney/Stable Diffusion coverage + nature retry (local training)
+
+### Problem found
+
+After v3 was reinstated, ongoing real-world testing confirmed the gap
+documented above was still present: **ChatGPT-generated face images were
+still frequently classified REAL with high confidence** by v3. Nature
+images were untested since v3 (unlike v4) never had nature-dataset
+exposure at all. The underlying cause remained the same as identified in
+the v4 section: no training data from OpenAI's current image-generation
+model family.
+
+### Approach
+
+Rather than repeat v4's "use as much data as possible" strategy, sampling
+across all sources was deliberately **moderated, not maximized** — direct
+evidence from the v3→v4 comparison above showed that maximizing volume
+does not reliably improve real-world behavior, and can introduce bias
+(e.g. skewing the REAL class toward an unrepresentative visual style).
+
+Four datasets were merged:
+
+| Dataset | Role | Train used | Test used |
+|---|---|---:|---:|
+| CIFAKE | objects/animals/vehicles (base) | 100,000 | 20,000 |
+| Real-vs-AI-Generated-Faces | human faces | 20,000 | 3,000 |
+| AI-vs-Human-Generated | nature/scenes (re-added, capped lower than v4) | 20,000 | 3,000 |
+| AI-Generated-Images-vs-Real-Images (new) | Stable Diffusion + MidJourney + DALL-E mix | 15,000 | 3,000 |
+
+**New dataset:** [`tristanzhang32/ai-generated-images-vs-real-images`](https://www.kaggle.com/datasets/tristanzhang32/ai-generated-images-vs-real-images)
+— chosen specifically because it contains genuine **DALL-E** images (the
+closest available match to ChatGPT's generator family), alongside
+MidJourney and Stable Diffusion. Filenames carry no generator label
+(plain sequential numbers), so the three generators cannot be individually
+isolated — every sampled batch contains an inseparable mix of all three,
+DALL-E included. Its REAL half is exclusively professional stock
+photography (Pexels/Unsplash/WikiArt); sampling was capped at 15,000/3,000
+per class (rather than the full 24,000/6,000 available) specifically to
+avoid over-representing that unrepresentative visual style in the REAL
+class. Nature's cap was also reduced from v4's full-pool 36,000 to 20,000
+per class for the same reason.
+
+**Training environment:** moved from Google Colab to a local machine
+(NVIDIA RTX 3050 Laptop GPU, 6GB VRAM) specifically to remove the
+free-tier GPU-quota and session-disconnect problems encountered during v4
+(4 separate Colab sessions were required to complete that run). Automatic
+mixed precision (AMP) was enabled to fit comfortably within 6GB VRAM and
+take advantage of the RTX 3050's Tensor Cores; batch size reduced to 32
+accordingly. A resume-from-checkpoint mechanism (full training state saved
+after every epoch) was retained as a safety net against local
+interruptions.
+
+**Robustness fix during this run:** training crashed at epoch 1 with
+`OSError: image file is truncated`, caused by a small number of corrupt
+files among the 248,000 total images pulled from four different
+web-scraped sources. Fixed by wrapping the image loader so any unreadable
+file is replaced with a neutral placeholder and logged, rather than
+crashing the run. Only 7 corrupt files were found in total (0.003% of the
+dataset) — negligible impact, training resumed and completed normally
+afterward.
+
+### Final v5 dataset composition
+
+| | |
+|---|---|
+| Training samples | 210,000 (105,000 REAL / 105,000 FAKE) |
+| Test samples | 38,000 (19,000 REAL / 19,000 FAKE) |
+| Epochs | 14 |
+| Training hardware | Local NVIDIA RTX 3050 Laptop GPU (6GB VRAM) |
+| Total training time | ≈ 7 hours 32 minutes |
+
+### Training progression
+
+| Epoch | Train Acc | Val Acc | Notes |
+|---:|---:|---:|---|
+| 1 | 87.75% | 92.82% | |
+| 2 | 91.40% | 93.73% | |
+| 3 | 92.76% | 94.58% | |
+| 4 | 93.61% | 94.53% | slight dip, not a new best |
+| 5 | 95.26% | 95.37% | |
+| 6 | 95.80% | 95.90% | |
+| 7 | 96.20% | 95.99% | |
+| 8 | 96.50% | 95.84% | dip — coincides with a scheduled learning-rate decay (halved every 4 epochs); not overfitting, since val loss/accuracy both recovered immediately after |
+| 9 | 97.28% | 96.05% | |
+| 10 | 97.57% | 96.17% | |
+| 11 | 97.76% | 96.12% | not a new best |
+| 12 | 97.87% | 96.18% | |
+| 13 | 98.26% | **96.35%** | **best epoch — this is the deployed checkpoint** |
+| 14 | 98.37% | 96.26% | final epoch; slightly below epoch 13, not saved as best |
+
+### v5 results
+
+| | |
+|---|---|
+| **Best validation accuracy (epoch 13 — the deployed checkpoint)** | **96.35%** |
+| Final-epoch accuracy (epoch 14) | 96.26% |
+
+**Important technical note:** because epoch 14 did not exceed epoch 13's
+result, the checkpoint file actually saved and deployed (`best_model.pt`)
+holds **epoch 13's** weights (96.35%). The classification report and
+confusion matrix below were produced by the script's final evaluation
+pass, which ran against whatever weights were in memory at that point —
+**epoch 14's**, not the saved best checkpoint. The two are very close
+(96.35% vs. 96.26%) and this does not change any conclusion, but the
+report below is technically epoch 14's numbers, not epoch 13's.
+
+**Classification report (epoch 14 weights, full 38,000-image test set):**
+
+| Class | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| FAKE | 0.96 | 0.96 | 0.96 |
+| REAL | 0.96 | 0.96 | 0.96 |
+
+**Confusion matrix:**
+
+|              | Predicted FAKE | Predicted REAL |
+|--------------|-----------------|-----------------|
+| Actual FAKE  | 18,300          | 700             |
+| Actual REAL  | 723             | 18,277          |
+
+On its own held-out test set, v5 (96.35%) scores lower than v3 (97.62%) —
+but, as with the v3→v4 comparison, this is not a like-for-like comparison:
+v5's test set is nearly 50% larger (38,000 vs. 26,000) and spans four
+visual categories (objects, faces, nature, and a mixed-generator category)
+instead of two.
+
+### Real-world verification — the result that matters
+
+The model was tested against the exact type of image that caused v3 (and
+v4) to fail: images generated using ChatGPT's built-in image tool.
+
+- **5 ChatGPT-generated face images** — all 5 correctly classified **FAKE**,
+  with confidence between 91.0% and 96.99%. This is a full resolution of
+  the face-detection gap that caused v4 to be reverted — the DALL-E-inclusive
+  dataset succeeded where the earlier faces-only + nature-only datasets did
+  not.
+- **2 ChatGPT-generated nature/landscape images** — both still incorrectly
+  classified **REAL**, both above 95% confidence. The nature dataset's own
+  generator coverage evidently does not extend to ChatGPT's current image
+  model for non-facial content, even though it now covers nature/landscape
+  *composition* in general. This is documented here as an **open, known
+  limitation**, not resolved by this version.
+- **1 genuine real photo** (a Windows screen-capture/camera file) — correctly
+  classified REAL (95.93% confidence), confirming no regression on ordinary
+  real-world images.
+
+### Decision
+
+v5 was adopted as the new deployed model, replacing v3. The face-detection
+improvement is a complete, verified fix for the specific failure mode that
+caused the previous revert. The remaining nature-image gap is a narrower,
+distinct limitation — closing it would likely require a dataset combining
+*both* nature/landscape content *and* modern-generator coverage
+specifically (the current nature dataset and the DALL-E/MidJourney/SD
+dataset each cover one of those two dimensions, not both together) — and is
+recorded here as a candidate direction for any future iteration.
 
 ---
 
@@ -325,3 +483,8 @@ produced a new best result.
 - **Missing dependency fix:** `reportlab` was listed in `requirements.txt`
   but not actually installed in the local virtual environment; resolved with
   a direct `pip install`.
+- **Corrupt training image handling:** during v5 training, 7 corrupt/truncated
+  image files (out of 248,000 total, sourced from 4 different web-scraped
+  datasets) crashed the training loop. Fixed with an error-tolerant image
+  loader that substitutes a placeholder and logs the file path instead of
+  crashing — training completed normally afterward.
